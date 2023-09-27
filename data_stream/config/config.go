@@ -7,7 +7,7 @@ type DBConnector interface {
 	Close() error
 }
 
-// MySQLConfig holds the MySQL connection configuration.
+// MySQL connection configuration.
 type MySQLConfig struct {
 	Username string
 	Password string
@@ -16,22 +16,22 @@ type MySQLConfig struct {
 	DBName   string
 }
 
-// MySQLConnector is a struct that implements the DBConnector interface for MySQL.
+// implements the DBConnector interface for MySQL.
 type MySQLConnector struct {
 	config MySQLConfig
 }
 
-// KafkaConfig holds the Kafka connection configuration.
+//Kafka connection configuration.
 type KafkaConfig struct {
 	Broker string
 }
 
-// KafkaConnector is a struct that implements the DBConnector interface for Kafka.
+//implements the DBConnector interface for Kafka.
 type KafkaConnector struct {
 	config KafkaConfig
 }
 
-// ClickHouseConfig holds the ClickHouse connection configuration.
+// ClickHouse connection configuration.
 type ClickHouseConfig struct {
 	Username string
 	Password string
@@ -40,7 +40,7 @@ type ClickHouseConfig struct {
 	DBName   string
 }
 
-// ClickHouseConnector is a struct that implements the DBConnector interface for ClickHouse.
+// struct that implements the DBConnector interface for ClickHouse.
 type ClickHouseConnector struct {
 	config ClickHouseConfig
 }
