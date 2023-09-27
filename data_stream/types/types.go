@@ -19,7 +19,7 @@ type ContactDetails struct {
 	city      string
 	state     string
 }
-type InsertStatus struct {
+type InsertContact struct {
 	contact Contacts
 	status  int
 }
