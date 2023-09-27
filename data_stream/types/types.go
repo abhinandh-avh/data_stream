@@ -19,10 +19,9 @@ type ContactDetails struct {
 	city      string
 	state     string
 }
-type InsertContact struct {
+type InsertStatus struct {
 	contact Contacts
 	status  int
 }
-type QuryOutput struct {
-	// ......
+type QueryOutput struct {
 }
