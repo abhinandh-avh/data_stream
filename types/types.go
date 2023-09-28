@@ -1,9 +1,10 @@
 package types
 
 type Contacts struct {
-	id    int
-	name  string
-	email string
+	id      int
+	name    string
+	email   string
+	details string
 }
 
 type ContactActivity struct {
@@ -13,12 +14,7 @@ type ContactActivity struct {
 	activitytytype int
 	activitydate   string
 }
-type ContactDetails struct {
-	contactid int
-	dob       string
-	city      string
-	state     string
-}
+
 type InsertContact struct {
 	contact Contacts
 	status  int

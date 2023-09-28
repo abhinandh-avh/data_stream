@@ -3,6 +3,6 @@ package database
 import "datastream/types"
 
 type DataStore interface {
-	InsertContact(contact types.InsertContacts) error
+	Add(contact types.Contacts) error
 	GenerateActivity(contact types.ContactActivity) (types.ContactActivity, error)
 }
