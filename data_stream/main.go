@@ -1,12 +1,10 @@
 package main
 
 import (
-	"datastream/routes"
+	route "datastream/routes"
+	"net/http"
 )
 
 func main() {
-
-	r := routes.SetupRouter()
-
-	r.Run(":8080")
+route.SetupRoutes()
 }
