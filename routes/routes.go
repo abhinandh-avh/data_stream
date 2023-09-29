@@ -6,6 +6,5 @@ import (
 )
 
 func SetupRoutes() {
-	http.HandleFunc("/", api.HomePage)
-
+	http.HandleFunc("/", api.HomePageHandler)
 }

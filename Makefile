@@ -1,8 +1,26 @@
-build:
-    go build -o bin/app
 
-run: build
-    ./bin/app
+GO = go
+BINARY = app  # Change this to your actual binary name
+PACKAGES = $(shell go list ./...)
+
+# Targets
+.PHONY: all build clean test
+
+all: build
+
+build:
+	@echo "Building $(BINARY)..."
+	$(GO) build -o $(BINARY) main.go
+
+clean:
+	@echo "Cleaning up..."
+	$(GO) clean
+	rm -f $(BINARY)
 
 test:
-    go test -v ./... -count=1
+	@echo "Running tests..."
+	$(GO) test $(PACKAGES)
+run:
+	@echo "Running $(BINARY)..."
+	./$(BINARY)
+

@@ -15,7 +15,7 @@ type ContactActivity struct {
 	activitydate   string
 }
 
-type InsertContact struct {
+type ContactStatus struct {
 	contact Contacts
 	status  int
 }

@@ -11,7 +11,7 @@ Here's an overview of the project's directory structure:
 - `api/`: Contains API-related code.
   - `handler.go`: Handles file upload and processing.
 - `database/`: Manages database interactions.
-  - `insert.go`: Responsible for inserting data into MySQL and ClickHouse.
+  - `database.go`: Responsible for inserting data into MySQL and ClickHouse.
 - `routes/`: Defines API routes.
   - `routes.go`: Configures HTTP routes for the API.
 - `types/`: Contains custom data types.
