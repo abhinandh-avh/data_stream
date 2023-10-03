@@ -1,24 +1,59 @@
 package logs
 
 import (
+	"fmt"
 	"log"
+	"os"
+	"time"
 )
 
-// SimpleLogger is a concrete implementation of the Logger interface using the standard log package.
-type SimpleLogger struct{}
+var FileLog *FileLogger
 
-func NewSimpleLogger() *SimpleLogger {
-	return &SimpleLogger{}
+type FileLogger struct {
+	LogFile *os.File
 }
 
-func (l *SimpleLogger) Info(message string) {
-	log.Printf("[INFO] %s\n", message)
+// NewFileLogger creates a new FileLogger instance and opens the log file.
+func NewFileLogger(logFilePath string) (*FileLogger, error) {
+	logFile, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		return nil, err
+	}
+	return &FileLogger{logFile}, nil
 }
 
-func (l *SimpleLogger) Warning(message string) {
-	log.Printf("[WARNING] %s\n", message)
+// logMessage logs a message to the log file with the specified log level.
+func (l *FileLogger) logMessage(level string, messages ...interface{}) {
+	message := "[" + level + "] " + time.Now().Format("2006-01-02 15:04:05") + " "
+	message += fmt.Sprint(messages...)
+	log.SetOutput(l.LogFile)
+	log.Println(message)
 }
 
-func (l *SimpleLogger) Error(message string) {
-	log.Printf("[ERROR] %s\n", message)
+// Info logs an info message to the log file with a timestamp and date.
+func (l *FileLogger) Info(messages ...interface{}) {
+	l.logMessage("INFO", messages...)
+}
+
+// Warning logs a warning message to the log file with a timestamp and date.
+func (l *FileLogger) Warning(messages ...interface{}) {
+	l.logMessage("WARNING", messages...)
+}
+
+// Error logs an error message to the log file with a timestamp and date.
+func (l *FileLogger) Error(messages ...interface{}) {
+	l.logMessage("ERROR", messages...)
+}
+
+func LogInstance() {
+	var err error
+	FileLog, err = NewFileLogger("app.log")
+	if err != nil {
+		log.Fatalf("Failed to create logger: %v", err)
+	}
+	FileLog, err = NewFileLogger("app.log")
+	FileLog.Info("Log File Created")
+}
+func LogClose() {
+	FileLog.LogFile.Close()
 }

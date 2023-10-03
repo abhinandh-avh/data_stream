@@ -1,38 +1,47 @@
 package api
 
 import (
+	"datastream/dataprocess"
 	"datastream/logs"
-	"html/template"
+
 	"net/http"
 )
 
-func HomePageHandler(w http.ResponseWriter, r *http.Request) {
-	// Create an instance of the logger
-	logger := logs.NewSimpleLogger()
+func HomeHandler(w http.ResponseWriter, r *http.Request) {
+	// Serve the index.html file for the "/" route
+	http.ServeFile(w, r, "templates/HomePage.html")
+}
 
-	tmpl, err := template.ParseFiles("templates/HomePage.html")
+func AboutHandler(w http.ResponseWriter, r *http.Request) {
+	// Serve the about.html file for the "/about" route
+	http.ServeFile(w, r, "templates/ResultPage.html")
+}
+
+func InsertIntoKafkaHandler(w http.ResponseWriter, r *http.Request) {
+	// Serve the index.html file for the "/insert" route
+	// Get the uploaded file from the request
+	logs.FileLog.Info("hello")
+	file, _, err := r.FormFile("file")
 	if err != nil {
-		// Log the error using the logger
-		logger.Error(err.Error())
+		logs.FileLog.Info("ello")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer file.Close()
+
+	// Pass the file to a function in the data processing package to insert into Kafka
+	err = dataprocess.InsertCSVIntoKafka(file, "topic")
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	err = tmpl.Execute(w, nil)
-	if err != nil {
-		// Log the error using the logger
-		logger.Error(err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
+	logs.FileLog.Info("CSV data inserted into Kafka successfully!")
+	dataprocess.ExtractFromKafka(1)
+
 }
 
-func ResultPageHandler() {
-}
-
-func UploadToKafka() {
-	// Implement the logic to upload data to Kafka here
-}
-
-func GetDataFromClickHouse() {
-	// Implement the logic to get data from ClickHouse here
-}
+//	func GetFromClickHouseHandler(w http.ResponseWriter, r *http.Request) {
+//		// Serve the index.html file for the "/get" route
+//		http.ServeFile(w, r, "templates/main.html")
+//	}
