@@ -32,29 +32,34 @@ type QueryOutput struct {
 
 func InsertInMysql(contacts ContactStatus, activitystring string) {
 	mysql := Connections("mysql")
-	mysql.Connect()
+	err := mysql.Connect()
 	defer mysql.Close()
-	err := mysql.(*MySQLConnection).InsertData(contacts, activitystring)
+	if err != nil {
+		logs.FileLog.Error("Connection doesn't works properly")
+	}
+	err = mysql.(*MySQLConnection).InsertData(contacts, activitystring)
 	if err != nil {
 		logs.FileLog.Error("Batch insertion doesn't works properly")
 	}
 }
 
-func ProcessData(data Contacts) {
-	uniqueID := uuid.New().String()
-	activity, flag := GenerateActivity(uniqueID)
-	var new ContactStatus
-	new.Contacts = data
-	new.Id = uniqueID
-	new.Status = flag
-	values := formatActivity(activity)
-	InsertInMysql(new, values)
-	logs.FileLog.Info(values)
+func ProcessData(input <-chan Contacts) {
+	for item := range input {
+		uniqueID := uuid.New().String()
+		activity, flag := GenerateActivity(uniqueID)
+		var new ContactStatus
+		new.Contacts = item
+		new.Id = uniqueID
+		new.Status = flag
+		values := formatActivity(activity)
+		// logs.FileLog.Info(fmt.Sprintf("...loading : %s , %s", new.Email, values))
+		InsertInMysql(new, values)
+	}
 }
 
-func formatActivity(activity *[]ContactActivity) string {
+func formatActivity(activity []ContactActivity) string {
 	var values string
-	for _, ins := range *activity {
+	for _, ins := range activity {
 		for i := 0; i < len(ins.Activitytype); i++ {
 			values += fmt.Sprintf("('%s',%d,%d,'%s'),", ins.Contactid, ins.Campaignid, ins.Activitytype[i], ins.Activitydate[i])
 		}
@@ -63,7 +68,7 @@ func formatActivity(activity *[]ContactActivity) string {
 	return activityString
 }
 
-func GenerateActivity(id string) (*[]ContactActivity, int) {
+func GenerateActivity(id string) ([]ContactActivity, int) {
 	var activity []ContactActivity
 	var flag int
 	startDate := "2023-01-01"
@@ -84,11 +89,11 @@ func GenerateActivity(id string) (*[]ContactActivity, int) {
 		ins.Activitydate = dates
 		if flag == 0 {
 			activity = append(activity, ins)
-			return &activity, flag
+			return activity, flag
 		}
 		activity = append(activity, ins)
 	}
-	return &activity, flag
+	return activity, flag
 }
 
 func activitype() ([]int, int) {

@@ -10,7 +10,7 @@ func InsertCSVIntoKafka(file io.Reader, topic string) error {
 	kafka := database.Connections("kafka")
 	kafka.Connect()
 	defer kafka.Close()
-	kafka.(*database.KafkaConnection).AddTopic("topic")
+	kafka.(*database.KafkaConnection).AddTopic(topic)
 	scanner := bufio.NewScanner(file)
 
 	for scanner.Scan() {
@@ -18,7 +18,7 @@ func InsertCSVIntoKafka(file io.Reader, topic string) error {
 		value := []byte(line)
 		kafka.(*database.KafkaConnection).SendMessage(value)
 	}
-
+	kafka.(*database.KafkaConnection).SendMessage([]byte("EOF->"))
 	if err := scanner.Err(); err != nil {
 		return err
 	}
@@ -26,10 +26,14 @@ func InsertCSVIntoKafka(file io.Reader, topic string) error {
 	return nil
 }
 
-func ExtractFromKafka(partition int32) {
+func ExtractFromKafka(topic string) {
 	kafka := database.Connections("kafka")
+
 	kafka.Connect()
 	defer kafka.Close()
-	kafka.(*database.KafkaConnection).AddTopic("topic")
-	kafka.(*database.KafkaConnection).RetrieveMessage(partition)
+
+	kafka.(*database.KafkaConnection).AddTopic(topic)
+
+	kafka.(*database.KafkaConnection).RetrieveMessage()
+
 }

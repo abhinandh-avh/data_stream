@@ -26,8 +26,10 @@ func (m *MySQLConnection) Connect() error {
 	dsn := m.Config.GetDSN()
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
+		logs.FileLog.Warning("sql connection issue")
 		return err
 	}
+
 	m.DB = db
 	return nil
 }
@@ -38,36 +40,38 @@ func (m *MySQLConnection) Close() {
 	}
 }
 
-func (m *MySQLConnection) QueryExec(query string) ([]map[string]interface{}, error) {
-	// Implement the MySQL query logic here
-	return nil, nil
-}
+// func (m *MySQLConnection) QueryExec(query string) ([]map[string]interface{}, error) {
+// 	// Implement the MySQL query logic here
+// 	return nil, nil
+// }
 
 func (m *MySQLConnection) InsertData(contacts ContactStatus, activitystring string) error {
 	tx, err := m.DB.Begin()
 	if err != nil {
-		return err
+		logs.FileLog.Error(fmt.Print(err))
 	}
 
-	_, err = tx.Exec("INSERT INTO table1 (id, name, email, details, flag) VALUES (?, ?, ?, ?, ?)", contacts.Id,
-		contacts.Name, contacts.Email,
-		contacts.Details, contacts.Status)
+	_, err = tx.Exec("INSERT INTO Users (id, name, email, details, status) VALUES (?, ?, ?, ?, ?)",
+		contacts.Id, contacts.Name, contacts.Email, contacts.Details, contacts.Status)
 	if err != nil {
 		tx.Rollback()
-		return err
+
+		logs.FileLog.Error(fmt.Print(err))
 	}
 
-	sqlStatement := fmt.Sprintf("INSERT INTO your_table (name, email) VALUES %s;", activitystring)
+	sqlStatement := fmt.Sprintf("INSERT INTO Activity (contact_id, campaign_id, activity_type, date) VALUES %s;",
+		activitystring)
 	_, err = tx.Exec(sqlStatement)
 	if err != nil {
 		tx.Rollback()
-		return err
+
+		logs.FileLog.Error(fmt.Print(err))
 	}
 
-	// Commit the transaction
 	if err := tx.Commit(); err != nil {
 		tx.Rollback()
-		return err
+
+		logs.FileLog.Error(fmt.Print(err))
 	}
 	return nil
 }
@@ -149,19 +153,25 @@ func (k *KafkaConnection) SendMessage(value []byte) {
 	k.Producer.SendMessage(message)
 }
 
-func (k *KafkaConnection) RetrieveMessage(partition int32) ([]byte, error) {
-	partitionConsumer, err := k.Consumer.ConsumePartition(k.Topic, partition, sarama.OffsetOldest)
+func (k *KafkaConnection) RetrieveMessage() {
+	inputChan := make(chan Contacts, 10)
+	partitionConsumer, err := k.Consumer.ConsumePartition(k.Topic, 0, sarama.OffsetOldest)
 	k.Flag = "retrieve"
 	if err != nil {
-		return nil, err
+		logs.FileLog.Warning(fmt.Sprintf("Error in consuming : %v", err))
 	}
 	defer partitionConsumer.Close()
 
 	for {
 		select {
 		case message := <-partitionConsumer.Messages():
+
 			var data Contacts
-			parts := strings.Split(string(message.Value), ",")
+			parts := strings.SplitN(string(message.Value), ",", 3)
+			if parts[0] == "EOF->" {
+				logs.FileLog.Warning("Kafka messages are finished.")
+				return
+			}
 			if len(parts) != 3 {
 				logs.FileLog.Warning(fmt.Printf("Invalid message format: %s\n", string(message.Value)))
 				continue
@@ -171,17 +181,16 @@ func (k *KafkaConnection) RetrieveMessage(partition int32) ([]byte, error) {
 				Email:   parts[1],
 				Details: parts[2],
 			}
-			go ProcessData(data)
+			go ProcessData(inputChan)
+			inputChan <- data
 		case err := <-partitionConsumer.Errors():
 			logs.FileLog.Warning(fmt.Sprintf("Error consuming messages: %v", err))
-			return nil, err
 		}
 	}
 }
 
 func Connections(conn string) DatabaseConnection {
-
-	connector := config.LoadConfig("conn")
+	connector := config.LoadConfig(conn)
 	switch conn {
 	case "mysql":
 		return &MySQLConnection{Config: connector}

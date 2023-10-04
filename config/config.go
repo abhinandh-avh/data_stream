@@ -14,10 +14,10 @@ type DatabaseConfig interface {
 
 type MySQLConfig struct {
 	Host     string
-	Port     int
 	Username string
 	Password string
 	Database string
+	Port     int
 }
 
 func (c *MySQLConfig) GetDSN() string {
