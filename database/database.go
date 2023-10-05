@@ -12,6 +12,11 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
+type Contacts struct {
+	Name    string
+	Email   string
+	Details string
+}
 type DatabaseConnection interface {
 	Connect() error
 	Close()
@@ -41,39 +46,52 @@ func (m *MySQLConnection) Close() {
 }
 
 // func (m *MySQLConnection) QueryExec(query string) ([]map[string]interface{}, error) {
-// 	// Implement the MySQL query logic here
 // 	return nil, nil
 // }
 
-func (m *MySQLConnection) InsertData(contacts ContactStatus, activitystring string) error {
+func (m *MySQLConnection) InsertData(contact []string, activitystring []string) {
+	batchSize := 1000
 	tx, err := m.DB.Begin()
 	if err != nil {
 		logs.FileLog.Error(fmt.Print(err))
 	}
+	for i := 0; i < len(contact); i++ {
+		sqlStatement := fmt.Sprintf("INSERT INTO Contacts (ID, Name, Email, Details, Status) VALUES %s;", contact[i])
+		_, err = tx.Exec(sqlStatement)
+		if err != nil {
+			tx.Rollback()
 
-	_, err = tx.Exec("INSERT INTO Users (id, name, email, details, status) VALUES (?, ?, ?, ?, ?)",
-		contacts.Id, contacts.Name, contacts.Email, contacts.Details, contacts.Status)
-	if err != nil {
-		tx.Rollback()
+			logs.FileLog.Error(fmt.Print(err))
+		}
 
-		logs.FileLog.Error(fmt.Print(err))
-	}
+		sqlStatements := fmt.Sprintf("INSERT INTO ContactActivity (ContactsID, CampaignID, ActivityType, ActivityDate) VALUES %s;",
+			activitystring[i])
+		_, err = tx.Exec(sqlStatements)
+		if err != nil {
+			tx.Rollback()
 
-	sqlStatement := fmt.Sprintf("INSERT INTO Activity (contact_id, campaign_id, activity_type, date) VALUES %s;",
-		activitystring)
-	_, err = tx.Exec(sqlStatement)
-	if err != nil {
-		tx.Rollback()
+			logs.FileLog.Error(fmt.Print(err))
+		}
+		if i%batchSize == 0 {
+			logs.FileLog.Info("Batch Inserted...")
+			if err := tx.Commit(); err != nil {
+				tx.Rollback()
 
-		logs.FileLog.Error(fmt.Print(err))
+				logs.FileLog.Error(fmt.Print(err))
+			}
+			tx, err = m.DB.Begin()
+			if err != nil {
+				logs.FileLog.Error(fmt.Print(err))
+			}
+
+		}
 	}
 
 	if err := tx.Commit(); err != nil {
 		tx.Rollback()
 
-		logs.FileLog.Error(fmt.Print(err))
+		logs.FileLog.Error("EOF ->")
 	}
-	return nil
 }
 
 type ClickHouseConnection struct {
@@ -98,14 +116,12 @@ func (c *ClickHouseConnection) Close() {
 }
 
 func (c *ClickHouseConnection) QueryExec(query string) ([]map[string]interface{}, error) {
-	// Implement the ClickHouse query logic here
-	// ...
+
 	return nil, nil
 }
 
 func (c *ClickHouseConnection) InsertData(query string) error {
-	// Implement the ClickHouse execution logic here
-	// ...
+
 	return nil
 }
 
@@ -150,11 +166,11 @@ func (k *KafkaConnection) SendMessage(value []byte) {
 		Value: sarama.ByteEncoder(value),
 	}
 	k.Flag = "send"
+
 	k.Producer.SendMessage(message)
 }
 
-func (k *KafkaConnection) RetrieveMessage() {
-	inputChan := make(chan Contacts, 10)
+func (k *KafkaConnection) RetrieveMessage(chanel chan Contacts) {
 	partitionConsumer, err := k.Consumer.ConsumePartition(k.Topic, 0, sarama.OffsetOldest)
 	k.Flag = "retrieve"
 	if err != nil {
@@ -165,24 +181,22 @@ func (k *KafkaConnection) RetrieveMessage() {
 	for {
 		select {
 		case message := <-partitionConsumer.Messages():
-
-			var data Contacts
 			parts := strings.SplitN(string(message.Value), ",", 3)
 			if parts[0] == "EOF->" {
 				logs.FileLog.Warning("Kafka messages are finished.")
+				close(chanel)
 				return
 			}
 			if len(parts) != 3 {
 				logs.FileLog.Warning(fmt.Printf("Invalid message format: %s\n", string(message.Value)))
 				continue
 			}
-			data = Contacts{
+			data := Contacts{
 				Name:    parts[0],
 				Email:   parts[1],
 				Details: parts[2],
 			}
-			go ProcessData(inputChan)
-			inputChan <- data
+			chanel <- data
 		case err := <-partitionConsumer.Errors():
 			logs.FileLog.Warning(fmt.Sprintf("Error consuming messages: %v", err))
 		}
