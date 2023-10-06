@@ -7,10 +7,14 @@ import (
 	"fmt"
 	"strings"
 
+	"sync"
+
 	_ "github.com/ClickHouse/clickhouse-go"
 	"github.com/IBM/sarama"
 	_ "github.com/go-sql-driver/mysql"
 )
+
+var wg sync.WaitGroup
 
 type Contacts struct {
 	Name    string
@@ -49,49 +53,71 @@ func (m *MySQLConnection) Close() {
 // 	return nil, nil
 // }
 
-func (m *MySQLConnection) InsertData(contact []string, activitystring []string) {
-	batchSize := 1000
+func (m *MySQLConnection) InsertData(chan1 chan string, chan2 chan string) {
+	batchSize := 1
+	counter1 := 0
+	counter2 := 0
 	tx, err := m.DB.Begin()
 	if err != nil {
 		logs.FileLog.Error(fmt.Print(err))
 	}
-	for i := 0; i < len(contact); i++ {
-		sqlStatement := fmt.Sprintf("INSERT INTO Contacts (ID, Name, Email, Details, Status) VALUES %s;", contact[i])
-		_, err = tx.Exec(sqlStatement)
-		if err != nil {
-			tx.Rollback()
-
-			logs.FileLog.Error(fmt.Print(err))
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		for contact := range chan1 {
+			counter1++
+			sqlStatement := fmt.Sprintf("INSERT INTO Contacts (ID, Name, Email, Details, Status) VALUES %s;", contact)
+			_, err = tx.Exec(sqlStatement)
+			if err != nil {
+				tx.Rollback()
+				logs.FileLog.Error(fmt.Print(err))
+			}
+			if counter1%batchSize == 0 {
+				logs.FileLog.Info("Batch Inserted...")
+				if err := tx.Commit(); err != nil {
+					tx.Rollback()
+					logs.FileLog.Error(fmt.Print(err))
+				}
+				tx, err = m.DB.Begin()
+				if err != nil {
+					logs.FileLog.Error(fmt.Print(err))
+				}
+			}
 		}
-
-		sqlStatements := fmt.Sprintf("INSERT INTO ContactActivity (ContactsID, CampaignID, ActivityType, ActivityDate) VALUES %s;",
-			activitystring[i])
-		_, err = tx.Exec(sqlStatements)
-		if err != nil {
-			tx.Rollback()
-
-			logs.FileLog.Error(fmt.Print(err))
+		if err := tx.Commit(); err != nil {
+			logs.FileLog.Error("--")
 		}
-		if i%batchSize == 0 {
-			logs.FileLog.Info("Batch Inserted...")
-			if err := tx.Commit(); err != nil {
+	}()
+	go func() {
+		defer wg.Done()
+		for activity := range chan2 {
+			counter2++
+			sqlStatements := fmt.Sprintf("INSERT INTO ContactActivity (ContactsID, CampaignID, ActivityType, ActivityDate) VALUES %s;",
+				activity)
+			_, err = tx.Exec(sqlStatements)
+			if err != nil {
 				tx.Rollback()
 
 				logs.FileLog.Error(fmt.Print(err))
 			}
-			tx, err = m.DB.Begin()
-			if err != nil {
-				logs.FileLog.Error(fmt.Print(err))
+			if counter2%batchSize == 0 {
+				logs.FileLog.Info("Batch Inserted...")
+				if err := tx.Commit(); err != nil {
+					tx.Rollback()
+					logs.FileLog.Error(fmt.Print(err))
+				}
+				tx, err = m.DB.Begin()
+				if err != nil {
+					logs.FileLog.Error(fmt.Print(err))
+				}
 			}
-
 		}
-	}
-
-	if err := tx.Commit(); err != nil {
-		tx.Rollback()
-
-		logs.FileLog.Error("EOF ->")
-	}
+		if err := tx.Commit(); err != nil {
+			logs.FileLog.Error("--")
+		}
+	}()
+	wg.Wait()
+	logs.FileLog.Info("SQL INSERTION COMPLETED...")
 }
 
 type ClickHouseConnection struct {

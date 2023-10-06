@@ -25,7 +25,7 @@ func InsertIntoKafkaHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer file.Close()
-	topic := "new30"
+	topic := "new35"
 	// Pass the file to a function in the data processing package to insert into Kafka
 	err = dataprocess.InsertCSVIntoKafka(file, topic)
 	if err != nil {

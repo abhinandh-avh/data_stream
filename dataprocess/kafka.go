@@ -3,12 +3,13 @@ package dataprocess
 import (
 	"bufio"
 	"datastream/database"
-	"datastream/logs"
 	"io"
 	"sync"
 
 	"github.com/google/uuid"
 )
+
+var wg *sync.WaitGroup
 
 func InsertCSVIntoKafka(file io.Reader, topic string) error {
 	kafka := database.Connections("kafka")
@@ -30,9 +31,9 @@ func InsertCSVIntoKafka(file io.Reader, topic string) error {
 }
 
 func ExtractFromKafka(topic string) {
-	count := 0
-	var wg sync.WaitGroup
 	outputChan := make(chan database.Contacts, 1000)
+	outputChan1 := make(chan string, 1000)
+	outputChan2 := make(chan string, 1000)
 
 	kafka := database.Connections("kafka")
 	kafka.Connect()
@@ -40,17 +41,14 @@ func ExtractFromKafka(topic string) {
 
 	kafka.(*database.KafkaConnection).AddTopic(topic)
 
-	go kafka.(*database.KafkaConnection).RetrieveMessage(outputChan)
+	kafka.(*database.KafkaConnection).RetrieveMessage(outputChan)
 	for result := range outputChan {
-		count++
 		wg.Add(1)
 		uniqueID := uuid.New().String()
-		go processData(result, uniqueID, &wg)
-		if count%1000 == 0 {
-			wg.Wait()
-		}
+		go processData(result, uniqueID, outputChan1, outputChan2)
 	}
-	logs.FileLog.Info("Wating...")
+	go InsertIntoMysql(outputChan1, outputChan2)
 	wg.Wait()
-	InsertIntoMysql()
+	close(outputChan1)
+	close(outputChan2)
 }

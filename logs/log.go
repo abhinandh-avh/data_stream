@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"time"
 )
 
 var FileLog *FileLogger
@@ -24,7 +23,7 @@ func NewFileLogger(logFilePath string) (*FileLogger, error) {
 
 // logMessage logs a message to the log file with the specified log level.
 func (l *FileLogger) logMessage(level string, messages ...interface{}) {
-	message := "[" + level + "] " + time.Now().Format("2006-01-02 15:04:05") + " "
+	message := "[" + level + "] "
 	message += fmt.Sprint(messages...)
 	log.SetOutput(l.LogFile)
 	log.Println(message)
