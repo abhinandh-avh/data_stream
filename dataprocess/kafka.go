@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 )
 
-var wg *sync.WaitGroup
+var wg sync.WaitGroup
 
 func InsertCSVIntoKafka(file io.Reader, topic string) error {
 	kafka := database.Connections("kafka")
@@ -45,7 +45,7 @@ func ExtractFromKafka(topic string) {
 	for result := range outputChan {
 		wg.Add(1)
 		uniqueID := uuid.New().String()
-		go processData(result, uniqueID, outputChan1, outputChan2)
+		go processData(result, uniqueID, &wg, outputChan1, outputChan2)
 	}
 	go InsertIntoMysql(outputChan1, outputChan2)
 	wg.Wait()

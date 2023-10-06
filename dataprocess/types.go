@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/rand"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -24,7 +25,7 @@ type ContactActivity struct {
 type QueryOutput struct {
 }
 
-func processData(item database.Contacts, id string, chan1 chan string, chan2 chan string) {
+func processData(item database.Contacts, id string, wg *sync.WaitGroup, chan1 chan string, chan2 chan string) {
 	defer wg.Done()
 	activity, flag := GenerateActivity(id)
 	var new ContactStatus
