@@ -19,7 +19,7 @@ func (k *KafkaConnection) Connect() error {
 	}
 	kafkaConsumer := sarama.NewConfig()
 	kafkaConsumer.Consumer.Return.Errors = true
-	consumer, err := sarama.NewConsumer([]string{"localhost:9092"}, kafkaConsumer)
+	consumer, err := sarama.NewConsumer([]string{k.Config.GetDSN()}, kafkaConsumer)
 	if err != nil {
 		return err
 	}
@@ -29,13 +29,12 @@ func (k *KafkaConnection) Connect() error {
 	return nil
 }
 func (k *KafkaConnection) Close() {
-	k.Close()
+	k.Producer.Close()
+	k.Consumer.Close()
 }
-func (k *KafkaConnection) setTopic(topic string) { k.Topic = topic }
+func (k *KafkaConnection) SetTopic(topic string) { k.Topic = topic }
 
-func (k *KafkaConnection) SendMessage(value []byte, topic string) {
-	defer k.Producer.Close()
-	k.setTopic(topic)
+func (k *KafkaConnection) SendMessage(value []byte) {
 	message := &sarama.ProducerMessage{
 		Topic: k.Topic,
 		Value: sarama.ByteEncoder(value),
@@ -44,8 +43,6 @@ func (k *KafkaConnection) SendMessage(value []byte, topic string) {
 }
 
 func (k *KafkaConnection) RetrieveMessage(chanel chan Contacts, topic string) {
-	defer k.Consumer.Close()
-	k.setTopic(topic)
 	partitionConsumer, err := k.Consumer.ConsumePartition(k.Topic, 0, sarama.OffsetOldest)
 	if err != nil {
 		logs.FileLog.Error("Error in consuming : %v", err)
@@ -72,7 +69,7 @@ func (k *KafkaConnection) RetrieveMessage(chanel chan Contacts, topic string) {
 				Details: parts[2],
 			}
 			chanel <- data
-			inactivityTimer.Reset(5 * time.Second)
+			inactivityTimer.Reset(30 * time.Second)
 		case err := <-partitionConsumer.Errors():
 			logs.FileLog.Error("Error consuming messages: %v", err)
 		}

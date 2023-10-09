@@ -29,7 +29,7 @@ func (m *MySQLConnection) QueryExec(query string) ([]map[string]interface{}, err
 	return nil, nil
 }
 
-func (m *MySQLConnection) InsertData(chan1 chan string, chan2 chan string) {
+func (m *MySQLConnection) InsertData(contactChannelTOSQL chan string, activityChannelTOSQL chan string) {
 	var wg sync.WaitGroup
 	batchSize := 10
 	counter1 := 0
@@ -42,7 +42,7 @@ func (m *MySQLConnection) InsertData(chan1 chan string, chan2 chan string) {
 	go func() {
 		defer wg.Done()
 		wg.Add(1)
-		for contact := range chan1 {
+		for contact := range contactChannelTOSQL {
 			counter1++
 			sqlStatement := fmt.Sprintf("INSERT INTO Contacts (ID, Name, Email, Details, Status) VALUES %s;", contact)
 			_, err = tx.Exec(sqlStatement)
@@ -69,7 +69,7 @@ func (m *MySQLConnection) InsertData(chan1 chan string, chan2 chan string) {
 	go func() {
 		defer wg.Done()
 		wg.Add(1)
-		for activity := range chan2 {
+		for activity := range activityChannelTOSQL {
 			counter2++
 			sqlStatements :=
 				fmt.Sprintf("INSERT INTO ContactActivity (ContactsID, CampaignID, ActivityType, ActivityDate) VALUES %s;",

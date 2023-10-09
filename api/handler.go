@@ -52,35 +52,10 @@ func InsertIntoKafkaHandler(w http.ResponseWriter, r *http.Request) {
 
 	topic := UniqueFileName
 
-	go handleFileToKafkaBackground(fileName, topic)
+	go dataprocess.InsertCSVIntoKafka(fileName, topic)
 
 	logs.FileLog.Error("CSV data inserted into Kafka successfully!  FILENAME :: %s", fileName)
 
 	http.ServeFile(w, r, "templates/HomePage.html")
 	return
-}
-
-func handleFileToKafkaBackground(fileName string, topic string) {
-
-	fileToSend, err := os.Open(fileName)
-	if err != nil {
-		logs.FileLog.Error("Opening fileToSend: %v", err)
-		return
-	}
-	defer fileToSend.Close()
-
-	buffer := make([]byte, 1024*1024)
-	for {
-		n, err := fileToSend.Read(buffer)
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			logs.FileLog.Error("Reading file: %v", err)
-			return
-		}
-		dataprocess.InsertCSVIntoKafka(buffer[:n], topic)
-	}
-
-	go dataprocess.ExtractFromKafka(topic)
 }
