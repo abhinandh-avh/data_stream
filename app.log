@@ -1,0 +1,35 @@
+2023/10/09 17:41:53 [INFO]  CSV data inserted into Kafka successfully!  FILENAME :: uploads/hello.csv1696853513275667274
+2023/10/09 17:41:53 [WARNING]  -----------------------------
+2023/10/09 17:44:18 [INFO]  Log File Created
+2023/10/09 17:44:18 [INFO]  Welcome
+2023/10/09 17:44:34 [INFO]  CSV data inserted into Kafka successfully!  FILENAME :: uploads/hello.csv1696853674878900645
+2023/10/09 17:44:35 [WARNING]  -----------------------------
+2023/10/09 17:44:37 [ERROR]  DB Begin : dial tcp 192.168.1.137:3306: connect: no route to host
+2023/10/09 17:44:37 [INFO]  SQL INSERTION COMPLETED...
+2023/10/09 17:45:16 [INFO]  Log File Created
+2023/10/09 17:45:16 [INFO]  Welcome
+2023/10/09 17:45:22 [INFO]  CSV data inserted into Kafka successfully!  FILENAME :: uploads/hello.csv1696853722833008619
+2023/10/09 17:45:23 [ERROR]  DB Begin : dial tcp 192.168.1.137:3306: connect: no route to host
+2023/10/09 17:45:23 [INFO]  SQL INSERTION COMPLETED...
+2023/10/09 17:45:23 [WARNING]  -----------------------------
+2023/10/09 17:46:40 [INFO]  Log File Created
+2023/10/09 17:46:40 [INFO]  Welcome
+2023/10/09 17:46:49 [INFO]  CSV data inserted into Kafka successfully!  FILENAME :: uploads/hello.csv1696853809536370772
+2023/10/09 17:46:50 [WARNING]  -----------------------------
+2023/10/09 17:46:52 [ERROR]  DB Begin : dial tcp 192.168.1.137:3306: connect: no route to host
+2023/10/09 17:46:52 [INFO]  SQL INSERTION COMPLETED...
+2023/10/09 18:07:27 [INFO]  Log File Created
+2023/10/09 18:07:27 [INFO]  Welcome
+2023/10/09 18:07:52 [INFO]  CSV data inserted into Kafka successfully!  FILENAME :: uploads/hello.csv1696855072998445228
+2023/10/09 18:07:53 [ERROR]  DB Begin : Error 1045 (28000): Access denied for user 'root'@'user' (using password: YES)
+2023/10/09 18:07:53 [INFO]  SQL INSERTION COMPLETED...
+2023/10/09 18:09:09 [INFO]  Log File Created
+2023/10/09 18:09:09 [INFO]  Welcome
+2023/10/09 18:09:21 [INFO]  CSV data inserted into Kafka successfully!  FILENAME :: uploads/hello.csv1696855161882841145
+2023/10/09 18:09:22 [ERROR]  DB Begin : Error 1045 (28000): Access denied for user 'root'@'user' (using password: YES)
+2023/10/09 18:09:22 [INFO]  SQL INSERTION COMPLETED...
+2023/10/09 18:18:27 [INFO]  Log File Created
+2023/10/09 18:18:27 [INFO]  Welcome
+2023/10/09 18:18:39 [INFO]  CSV data inserted into Kafka successfully!  FILENAME :: uploads/hello.csv1696855719418639805
+2023/10/09 18:18:40 [ERROR]  DB Begin : Error 1045 (28000): Access denied for user 'root'@'user' (using password: YES)
+2023/10/09 18:18:40 [INFO]  SQL INSERTION COMPLETED...

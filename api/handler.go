@@ -32,6 +32,7 @@ func AboutHandler(w http.ResponseWriter, r *http.Request) {
 // }
 
 func InsertIntoKafkaHandler(w http.ResponseWriter, r *http.Request) {
+
 	timestamp := time.Now().UnixNano()
 	uploadDir := "./uploads/"
 	file, header, err := r.FormFile("file")
@@ -51,11 +52,8 @@ func InsertIntoKafkaHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	topic := UniqueFileName
-
 	go dataprocess.InsertCSVIntoKafka(fileName, topic)
-
-	logs.FileLog.Error("CSV data inserted into Kafka successfully!  FILENAME :: %s", fileName)
-
+	logs.FileLog.Info("CSV data inserted into Kafka successfully!  FILENAME :: %s", fileName)
 	http.ServeFile(w, r, "templates/HomePage.html")
 	return
 }

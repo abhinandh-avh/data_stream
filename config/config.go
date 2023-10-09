@@ -90,7 +90,7 @@ func LoadConfig(con string) DatabaseConfig {
 		return &clickHouseConfig
 	case "kafka":
 		KafkaConfig := KafkaConfig{
-			Host: os.Getenv("CLICKHOUSE_HOST"),
+			Host: os.Getenv("KAFKA_HOST"),
 			Port: os.Getenv("KAFKA_PORT"),
 		}
 

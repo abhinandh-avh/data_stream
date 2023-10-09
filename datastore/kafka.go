@@ -42,7 +42,7 @@ func (k *KafkaConnection) SendMessage(value []byte) {
 	k.Producer.SendMessage(message)
 }
 
-func (k *KafkaConnection) RetrieveMessage(chanel chan Contacts, topic string) {
+func (k *KafkaConnection) RetrieveMessage(dataFromKafkaConsumer chan Contacts, topic string) {
 	partitionConsumer, err := k.Consumer.ConsumePartition(k.Topic, 0, sarama.OffsetOldest)
 	if err != nil {
 		logs.FileLog.Error("Error in consuming : %v", err)
@@ -68,8 +68,8 @@ func (k *KafkaConnection) RetrieveMessage(chanel chan Contacts, topic string) {
 				Email:   parts[1],
 				Details: parts[2],
 			}
-			chanel <- data
 			inactivityTimer.Reset(30 * time.Second)
+			dataFromKafkaConsumer <- data
 		case err := <-partitionConsumer.Errors():
 			logs.FileLog.Error("Error consuming messages: %v", err)
 		}

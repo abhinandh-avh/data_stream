@@ -97,5 +97,7 @@ func (m *MySQLConnection) InsertData(contactChannelTOSQL chan string, activityCh
 		}
 	}()
 	wg.Wait()
+	close(contactChannelTOSQL)
+	close(activityChannelTOSQL)
 	logs.FileLog.Info("SQL INSERTION COMPLETED...")
 }

@@ -5,7 +5,6 @@ import (
 	"datastream/logs"
 	"io"
 	"os"
-	"sync"
 
 	"github.com/google/uuid"
 )
@@ -36,7 +35,7 @@ func InsertCSVIntoKafka(fileName string, topic string) {
 }
 
 func ExtractFromKafka(topic string) {
-	var wg sync.WaitGroup
+
 	dataFromKafkaConsumer := make(chan datastore.Contacts)
 	contactChannelTOSQL := make(chan string)
 	activityChannelTOSQL := make(chan string)
@@ -45,16 +44,11 @@ func ExtractFromKafka(topic string) {
 	go kafkaInstance.(*datastore.KafkaConnection).RetrieveMessage(dataFromKafkaConsumer, topic)
 	go func() {
 		for result := range dataFromKafkaConsumer {
-			wg.Add(1)
 			uniqueID := uuid.New().String()
-			go processData(result, uniqueID, &wg, contactChannelTOSQL, activityChannelTOSQL)
+			go processData(result, uniqueID, contactChannelTOSQL, activityChannelTOSQL)
 		}
 	}()
 	go InsertIntoMysql(contactChannelTOSQL, activityChannelTOSQL)
-	wg.Wait()
-	close(contactChannelTOSQL)
-	close(activityChannelTOSQL)
-	kafkaInstance.Close()
 }
 func basicKafkaConnection(topic string) datastore.DatabaseConnection {
 	kafka := datastore.DatastoreInstance("kafka")

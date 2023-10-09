@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math/rand"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -30,11 +29,9 @@ type QueryOutput struct {
 func processData(
 	item datastore.Contacts,
 	id string,
-	wg *sync.WaitGroup,
 	contactChannelTOSQL chan string,
 	activityChannelTOSQL chan string) {
 
-	defer wg.Done()
 	counter++
 	activity, flag := GenerateActivity(id)
 	var new ContactStatus
