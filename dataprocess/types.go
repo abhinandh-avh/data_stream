@@ -1,7 +1,7 @@
 package dataprocess
 
 import (
-	"datastream/database"
+	"datastream/datastore"
 	"datastream/logs"
 	"fmt"
 	"math/rand"
@@ -10,8 +10,10 @@ import (
 	"time"
 )
 
+var counter = 0
+
 type ContactStatus struct {
-	database.Contacts
+	datastore.Contacts
 	Id     string
 	Status int
 }
@@ -25,8 +27,15 @@ type ContactActivity struct {
 type QueryOutput struct {
 }
 
-func processData(item database.Contacts, id string, wg *sync.WaitGroup, chan1 chan string, chan2 chan string) {
+func processData(
+	item datastore.Contacts,
+	id string,
+	wg *sync.WaitGroup,
+	contactChannelTOSQL chan string,
+	activityChannelTOSQL chan string) {
+
 	defer wg.Done()
+	counter++
 	activity, flag := GenerateActivity(id)
 	var new ContactStatus
 	new.Contacts = item
@@ -34,13 +43,16 @@ func processData(item database.Contacts, id string, wg *sync.WaitGroup, chan1 ch
 	new.Status = flag
 	values := formatActivity(activity)
 	contactString := formatContact(new)
-	chan1 <- contactString
-	chan2 <- values
+	contactChannelTOSQL <- contactString
+	activityChannelTOSQL <- values
+	if counter%1000 == 0 {
+		time.Sleep(5 * time.Second)
+	}
 }
+
 func formatContact(data ContactStatus) string {
 	var values string
 	values = fmt.Sprintf("('%s','%s','%s','%s',%d)", data.Id, data.Name, data.Email, data.Details, data.Status)
-
 	return values
 }
 

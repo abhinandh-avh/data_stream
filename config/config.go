@@ -17,12 +17,12 @@ type MySQLConfig struct {
 	Username string
 	Password string
 	Database string
-	Port     int
+	Port     string
 }
 
 func (c *MySQLConfig) GetDSN() string {
 	return fmt.Sprintf(
-		"%s:%s@tcp(%s:%d)/%s",
+		"%s:%s@tcp(%s:%s)/%s",
 		c.Username,
 		c.Password,
 		c.Host,
@@ -33,7 +33,7 @@ func (c *MySQLConfig) GetDSN() string {
 
 type ClickHouseConfig struct {
 	Host     string
-	Port     int
+	Port     string
 	Username string
 	Password string
 	Database string
@@ -41,7 +41,7 @@ type ClickHouseConfig struct {
 
 func (c *ClickHouseConfig) GetDSN() string {
 	return fmt.Sprintf(
-		"tcp://%s:%d?username=%s&password=%s&database=%s",
+		"tcp://%s:%s?username=%s&password=%s&database=%s",
 		c.Host,
 		c.Port,
 		c.Username,
@@ -50,16 +50,29 @@ func (c *ClickHouseConfig) GetDSN() string {
 	)
 }
 
+type KafkaConfig struct {
+	Host string
+	Port string
+}
+
+func (c *KafkaConfig) GetDSN() string {
+	return fmt.Sprintf(
+		"%s:%s",
+		c.Host,
+		c.Port,
+	)
+}
+
 // LoadConfig loads configuration values from the environment file.
 func LoadConfig(con string) DatabaseConfig {
 	if err := godotenv.Load(".env"); err != nil {
-		logs.FileLog.Error(fmt.Sprintf("Occured in reading .env file : %v ", err))
+		logs.FileLog.Error("Occured in reading .env file : %v", err)
 	}
 	switch con {
 	case "mysql":
 		mysqlConfig := MySQLConfig{
 			Host:     os.Getenv("MYSQL_HOST"),
-			Port:     3306,
+			Port:     os.Getenv("MYSQL_PORT"),
 			Username: os.Getenv("MYSQL_USERNAME"),
 			Password: os.Getenv("MYSQL_PASSWORD"),
 			Database: os.Getenv("MYSQL_DATABASE"),
@@ -68,13 +81,20 @@ func LoadConfig(con string) DatabaseConfig {
 	case "clickhouse":
 		clickHouseConfig := ClickHouseConfig{
 			Host:     os.Getenv("CLICKHOUSE_HOST"),
-			Port:     9000,
+			Port:     os.Getenv("CLICKHOUSE_PORT"),
 			Username: os.Getenv("CLICKHOUSE_USERNAME"),
 			Password: os.Getenv("CLICKHOUSE_PASSWORD"),
 			Database: os.Getenv("CLICKHOUSE_DATABASE"),
 		}
 
 		return &clickHouseConfig
+	case "kafka":
+		KafkaConfig := KafkaConfig{
+			Host: os.Getenv("CLICKHOUSE_HOST"),
+			Port: os.Getenv("KAFKA_PORT"),
+		}
+
+		return &KafkaConfig
 	default:
 		return nil
 	}

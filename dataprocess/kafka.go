@@ -1,54 +1,37 @@
 package dataprocess
 
 import (
-	"bufio"
-	"datastream/database"
-	"io"
+	"datastream/datastore"
 	"sync"
 
 	"github.com/google/uuid"
 )
 
-var wg sync.WaitGroup
-
-func InsertCSVIntoKafka(file io.Reader, topic string) error {
-	kafka := database.Connections("kafka")
-	kafka.Connect()
-	defer kafka.Close()
-	kafka.(*database.KafkaConnection).AddTopic(topic)
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		line := scanner.Text()
-		value := []byte(line)
-		kafka.(*database.KafkaConnection).SendMessage(value)
-	}
-	kafka.(*database.KafkaConnection).SendMessage([]byte("EOF->"))
-	if err := scanner.Err(); err != nil {
-		return err
-	}
-
-	return nil
+func InsertCSVIntoKafka(file []byte, topic string) {
+	kafkaInstance := basicKafkaConnection()
+	kafkaInstance.(*datastore.KafkaConnection).SendMessage(file, topic)
 }
 
 func ExtractFromKafka(topic string) {
-	outputChan := make(chan database.Contacts, 1000)
-	outputChan1 := make(chan string, 1000)
-	outputChan2 := make(chan string, 1000)
+	var wg sync.WaitGroup
+	dataFromKafkaConsumer := make(chan datastore.Contacts)
+	contactChannelTOSQL := make(chan string)
+	activityChannelTOSQL := make(chan string)
 
-	kafka := database.Connections("kafka")
-	kafka.Connect()
-	defer kafka.Close()
-
-	kafka.(*database.KafkaConnection).AddTopic(topic)
-
-	kafka.(*database.KafkaConnection).RetrieveMessage(outputChan)
-	for result := range outputChan {
+	kafkaInstance := basicKafkaConnection()
+	go kafkaInstance.(*datastore.KafkaConnection).RetrieveMessage(dataFromKafkaConsumer, topic)
+	for result := range dataFromKafkaConsumer {
 		wg.Add(1)
 		uniqueID := uuid.New().String()
-		go processData(result, uniqueID, &wg, outputChan1, outputChan2)
+		go processData(result, uniqueID, &wg, contactChannelTOSQL, activityChannelTOSQL)
 	}
-	go InsertIntoMysql(outputChan1, outputChan2)
+	go InsertIntoMysql(contactChannelTOSQL, activityChannelTOSQL)
 	wg.Wait()
-	close(outputChan1)
-	close(outputChan2)
+	close(contactChannelTOSQL)
+	close(activityChannelTOSQL)
+}
+func basicKafkaConnection() datastore.DatabaseConnection {
+	kafka := datastore.DatastoreInstance("kafka")
+	kafka.Connect()
+	return kafka
 }

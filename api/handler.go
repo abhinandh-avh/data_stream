@@ -3,8 +3,17 @@ package api
 import (
 	"datastream/dataprocess"
 	"datastream/logs"
+	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+	"time"
 
 	"net/http"
+)
+
+var (
+	UniqueFileName string
 )
 
 func HomeHandler(w http.ResponseWriter, r *http.Request) {
@@ -17,29 +26,61 @@ func AboutHandler(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "templates/ResultPage.html")
 }
 
+// func GetFromClickHouseHandler(w http.ResponseWriter, r *http.Request) {
+// 	// Serve the index.html file for the "/get" route
+// 	http.ServeFile(w, r, "templates/main.html")
+// }
+
 func InsertIntoKafkaHandler(w http.ResponseWriter, r *http.Request) {
-
-	file, _, err := r.FormFile("file")
+	timestamp := time.Now().UnixNano()
+	uploadDir := "./uploads/"
+	file, header, err := r.FormFile("file")
+	UniqueFileName = fmt.Sprintf("%s%d", header.Filename, timestamp)
+	fileName := filepath.Join(uploadDir, UniqueFileName)
+	outFile, err := os.Create(fileName)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		logs.FileLog.Error("Error in filename creation %v", err)
 		return
 	}
-	defer file.Close()
-	topic := "new35"
-	// Pass the file to a function in the data processing package to insert into Kafka
-	err = dataprocess.InsertCSVIntoKafka(file, topic)
+	defer outFile.Close()
+	_, err = io.Copy(outFile, file)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Error copying file to server", http.StatusInternalServerError)
+		logs.FileLog.Error("Error copying file: %v", err)
 		return
-	} else {
-		logs.FileLog.Info("CSV data inserted into Kafka successfully!")
-		http.ServeFile(w, r, "templates/ResultPage.html")
-		dataprocess.ExtractFromKafka(topic)
 	}
 
+	topic := UniqueFileName
+
+	go handleFileToKafkaBackground(fileName, topic)
+
+	logs.FileLog.Error("CSV data inserted into Kafka successfully!  FILENAME :: %s", fileName)
+
+	http.ServeFile(w, r, "templates/HomePage.html")
+	return
 }
 
-func GetFromClickHouseHandler(w http.ResponseWriter, r *http.Request) {
-	// Serve the index.html file for the "/get" route
-	http.ServeFile(w, r, "templates/main.html")
+func handleFileToKafkaBackground(fileName string, topic string) {
+
+	fileToSend, err := os.Open(fileName)
+	if err != nil {
+		logs.FileLog.Error("Opening fileToSend: %v", err)
+		return
+	}
+	defer fileToSend.Close()
+
+	buffer := make([]byte, 1024*1024)
+	for {
+		n, err := fileToSend.Read(buffer)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			logs.FileLog.Error("Reading file: %v", err)
+			return
+		}
+		dataprocess.InsertCSVIntoKafka(buffer[:n], topic)
+	}
+
+	go dataprocess.ExtractFromKafka(topic)
 }

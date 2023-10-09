@@ -9,12 +9,9 @@ import (
 )
 
 func main() {
-	logs.LogInstance()
-	defer logs.LogClose()
-	logs.FileLog.Info("Log File Created")
+	logs.FileLog.Info("Welcome")
 
 	router := routes.NewRouter()
-	// Define routes
 	router.AddRoute("GET", "/", api.HomeHandler)
 	router.AddRoute("GET", "/result", api.AboutHandler)
 	router.AddRoute("POST", "/upload", api.InsertIntoKafkaHandler)
