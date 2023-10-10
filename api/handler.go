@@ -17,19 +17,16 @@ var (
 )
 
 func HomeHandler(w http.ResponseWriter, r *http.Request) {
-	// Serve the index.html file for the "/" route
 	http.ServeFile(w, r, "templates/HomePage.html")
 }
 
 func AboutHandler(w http.ResponseWriter, r *http.Request) {
-	// Serve the about.html file for the "/about" route
 	http.ServeFile(w, r, "templates/ResultPage.html")
 }
 
-// func GetFromClickHouseHandler(w http.ResponseWriter, r *http.Request) {
-// 	// Serve the index.html file for the "/get" route
-// 	http.ServeFile(w, r, "templates/main.html")
-// }
+func GetFromClickHouseHandler(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "templates/ResultPage.html")
+}
 
 func InsertIntoKafkaHandler(w http.ResponseWriter, r *http.Request) {
 
@@ -55,10 +52,6 @@ func InsertIntoKafkaHandler(w http.ResponseWriter, r *http.Request) {
 	go dataprocess.InsertCSVIntoKafka(fileName, topic)
 	logs.FileLog.Info("CSV data inserted into Kafka successfully!  FILENAME :: %s", fileName)
 	http.ServeFile(w, r, "templates/HomePage.html")
-	// err = os.Remove(fileName)
-	// if err != nil {
-	// 	logs.FileLog.Error("Error deleting file: %v", err)
-	// 	return
-	// }
+
 	return
 }

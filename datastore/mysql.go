@@ -94,7 +94,6 @@ func (m *MySQLConnection) InsertData(contactChannelTOSQL chan string, activityCh
 
 	go func() {
 		for {
-			logs.FileLog.Info("____________")
 			waitg.Add(2)
 			go func() {
 				defer waitg.Done()

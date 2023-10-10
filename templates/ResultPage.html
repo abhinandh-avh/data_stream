@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Table Example</title>
+</head>
+
+<body>
+	<h1>Data Table</h1>
+	<button id="populate-button">Populate Table</button>
+	<table border="1">
+		<thead>
+			<tr>
+				<th>ID</th>
+				<th>Name</th>
+				<th>Age</th>
+			</tr>
+		</thead>
+		<tbody id="table-body">
+			<!-- Table rows will be inserted here -->
+		</tbody>
+	</table>
+
+	<script>
+		// Sample data (you would replace this with your query results)
+		var data = [
+			{ id: 1, name: "John", age: 30 },
+			{ id: 2, name: "Jane", age: 25 },
+			{ id: 3, name: "Bob", age: 40 },
+			{ id: 4, name: "Alice", age: 28 },
+			{ id: 5, name: "Eve", age: 35 }
+		];
+
+		// Function to populate the table with data
+		function populateTable() {
+			var tableBody = document.getElementById("table-body");
+			tableBody.innerHTML = "";
+
+			data.forEach(function (item) {
+				var row = document.createElement("tr");
+				row.innerHTML = `<td>${item.id}</td><td>${item.name}</td><td>${item.age}</td>`;
+				tableBody.appendChild(row);
+			});
+		}
+
+		// Event listener for the button click
+		var populateButton = document.getElementById("populate-button");
+		populateButton.addEventListener("click", populateTable);
+	</script>
+</body>
+
+</html>
