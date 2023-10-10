@@ -55,5 +55,10 @@ func InsertIntoKafkaHandler(w http.ResponseWriter, r *http.Request) {
 	go dataprocess.InsertCSVIntoKafka(fileName, topic)
 	logs.FileLog.Info("CSV data inserted into Kafka successfully!  FILENAME :: %s", fileName)
 	http.ServeFile(w, r, "templates/HomePage.html")
+	// err = os.Remove(fileName)
+	// if err != nil {
+	// 	logs.FileLog.Error("Error deleting file: %v", err)
+	// 	return
+	// }
 	return
 }

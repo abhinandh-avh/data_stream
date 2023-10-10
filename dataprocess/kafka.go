@@ -3,8 +3,11 @@ package dataprocess
 import (
 	"datastream/datastore"
 	"datastream/logs"
+	"encoding/csv"
 	"io"
 	"os"
+	"strings"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -18,37 +21,54 @@ func InsertCSVIntoKafka(fileName string, topic string) {
 	}
 	defer fileToSend.Close()
 
-	buffer := make([]byte, 1024*1024)
+	csvReader := csv.NewReader(fileToSend)
 	for {
-		numeberOflines, err := fileToSend.Read(buffer)
+		line, err := csvReader.Read()
 		if err == io.EOF {
 			break
 		}
 		if err != nil {
-			logs.FileLog.Error("Reading file: %v", err)
+			logs.FileLog.Error("Reading CSV: %v", err)
 			return
 		}
-		kafkaInstance.(*datastore.KafkaConnection).SendMessage(buffer[:numeberOflines])
+
+		// Convert the CSV line to a string (you can customize this as needed)
+		lineStr := strings.Join(line, ",")
+
+		// Send the line to Kafka
+		kafkaInstance.(*datastore.KafkaConnection).SendMessage([]byte(lineStr))
 	}
 
 	go ExtractFromKafka(topic)
 }
 
 func ExtractFromKafka(topic string) {
-
+	channelClossigngTrigger := make(chan bool)
 	dataFromKafkaConsumer := make(chan datastore.Contacts)
 	contactChannelTOSQL := make(chan string)
 	activityChannelTOSQL := make(chan string)
-
 	kafkaInstance := basicKafkaConnection(topic)
-	go kafkaInstance.(*datastore.KafkaConnection).RetrieveMessage(dataFromKafkaConsumer, topic)
+	go func() {
+		kafkaInstance.(*datastore.KafkaConnection).RetrieveMessage(dataFromKafkaConsumer, topic)
+		channelClossigngTrigger <- true
+	}()
 	go func() {
 		for result := range dataFromKafkaConsumer {
 			uniqueID := uuid.New().String()
 			go processData(result, uniqueID, contactChannelTOSQL, activityChannelTOSQL)
 		}
 	}()
+
 	go InsertIntoMysql(contactChannelTOSQL, activityChannelTOSQL)
+	go func() {
+		bools := <-channelClossigngTrigger
+		time.Sleep(15 * time.Second)
+		if bools {
+			logs.FileLog.Info("Channels are closed")
+		}
+		close(contactChannelTOSQL)
+		close(activityChannelTOSQL)
+	}()
 }
 func basicKafkaConnection(topic string) datastore.DatabaseConnection {
 	kafka := datastore.DatastoreInstance("kafka")

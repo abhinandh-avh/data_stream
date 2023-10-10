@@ -8,6 +8,8 @@ import (
 	"github.com/joho/godotenv"
 )
 
+var GlobalChannel string
+
 type DatabaseConfig interface {
 	GetDSN() string
 }

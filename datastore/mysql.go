@@ -30,45 +30,45 @@ func (m *MySQLConnection) QueryExec(query string) ([]map[string]interface{}, err
 }
 
 func (m *MySQLConnection) InsertData(contactChannelTOSQL chan string, activityChannelTOSQL chan string) {
+	trigerContactCommit := make(chan bool)
+	trigerActivityCommit := make(chan bool)
+	var activitytriger bool
+	var contacttriger bool
+	returnFromCommit := make(chan bool)
 	var wg sync.WaitGroup
-	batchSize := 10
+	var waitg sync.WaitGroup
+	batchSize := 1000
 	counter1 := 0
 	counter2 := 0
 	tx, err := m.DB.Begin()
 	if err != nil {
 		logs.FileLog.Error("DB Begin : %v", err)
 	}
-
+	wg.Add(2)
 	go func() {
 		defer wg.Done()
-		wg.Add(1)
 		for contact := range contactChannelTOSQL {
 			counter1++
 			sqlStatement := fmt.Sprintf("INSERT INTO Contacts (ID, Name, Email, Details, Status) VALUES %s;", contact)
 			_, err = tx.Exec(sqlStatement)
 			if err != nil {
 				tx.Rollback()
-				logs.FileLog.Error("%v", err)
+				logs.FileLog.Error("Excecuting : %v", err)
 			}
 			if counter1%batchSize == 0 {
-				logs.FileLog.Info("Batch Inserted...")
-				if err := tx.Commit(); err != nil {
-					tx.Rollback()
-					logs.FileLog.Error("%v", err)
-				}
-				tx, err = m.DB.Begin()
-				if err != nil {
-					logs.FileLog.Error("%v", err)
+				trigerContactCommit <- true
+				status := <-returnFromCommit
+				if status {
+					status = false
 				}
 			}
 		}
 		if err := tx.Commit(); err != nil {
-			logs.FileLog.Error("%v", err)
+			logs.FileLog.Error("Finishing...")
 		}
 	}()
 	go func() {
 		defer wg.Done()
-		wg.Add(1)
 		for activity := range activityChannelTOSQL {
 			counter2++
 			sqlStatements :=
@@ -77,12 +77,38 @@ func (m *MySQLConnection) InsertData(contactChannelTOSQL chan string, activityCh
 			_, err = tx.Exec(sqlStatements)
 			if err != nil {
 				tx.Rollback()
-
-				logs.FileLog.Error("%v", err)
+				logs.FileLog.Error("Excecuting : %v", err)
 			}
 			if counter2%batchSize == 0 {
-				logs.FileLog.Info("Batch Inserted...")
-				if err := tx.Commit(); err != nil {
+				trigerActivityCommit <- true
+				status := <-returnFromCommit
+				if status {
+					status = false
+				}
+			}
+		}
+		if err := tx.Commit(); err != nil {
+			logs.FileLog.Error("Finishing...")
+		}
+	}()
+
+	go func() {
+		for {
+			logs.FileLog.Info("____________")
+			waitg.Add(2)
+			go func() {
+				defer waitg.Done()
+				activitytriger = <-trigerActivityCommit
+			}()
+			go func() {
+				defer waitg.Done()
+				contacttriger = <-trigerContactCommit
+			}()
+			waitg.Wait()
+			if contacttriger == true && activitytriger == true {
+				if err := tx.Commit(); err == nil {
+					logs.FileLog.Info("Batch Inserted...")
+				} else {
 					tx.Rollback()
 					logs.FileLog.Error("%v", err)
 				}
@@ -91,13 +117,12 @@ func (m *MySQLConnection) InsertData(contactChannelTOSQL chan string, activityCh
 					logs.FileLog.Error("%v", err)
 				}
 			}
-		}
-		if err := tx.Commit(); err != nil {
-			logs.FileLog.Error("%v", err)
+			contacttriger = false
+			activitytriger = false
+			returnFromCommit <- true
+			returnFromCommit <- true
 		}
 	}()
 	wg.Wait()
-	close(contactChannelTOSQL)
-	close(activityChannelTOSQL)
 	logs.FileLog.Info("SQL INSERTION COMPLETED...")
 }

@@ -49,7 +49,7 @@ func (k *KafkaConnection) RetrieveMessage(dataFromKafkaConsumer chan Contacts, t
 	}
 	defer partitionConsumer.Close()
 
-	inactivityTimer := time.NewTimer(30 * time.Second)
+	inactivityTimer := time.NewTimer(15 * time.Second)
 	inactivityTimer.Stop()
 
 	for {
@@ -68,7 +68,6 @@ func (k *KafkaConnection) RetrieveMessage(dataFromKafkaConsumer chan Contacts, t
 				Email:   parts[1],
 				Details: parts[2],
 			}
-			inactivityTimer.Reset(30 * time.Second)
 			dataFromKafkaConsumer <- data
 		case err := <-partitionConsumer.Errors():
 			logs.FileLog.Error("Error consuming messages: %v", err)

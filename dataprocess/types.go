@@ -42,6 +42,7 @@ func processData(
 	contactString := formatContact(new)
 	contactChannelTOSQL <- contactString
 	activityChannelTOSQL <- values
+
 	if counter%1000 == 0 {
 		time.Sleep(5 * time.Second)
 	}
@@ -49,7 +50,8 @@ func processData(
 
 func formatContact(data ContactStatus) string {
 	var values string
-	values = fmt.Sprintf("('%s','%s','%s','%s',%d)", data.Id, data.Name, data.Email, data.Details, data.Status)
+	values = fmt.Sprintf("('%s','%s','%s','%s',%d)",
+		data.Id, data.Name, data.Email, data.Details, data.Status)
 	return values
 }
 
@@ -57,7 +59,8 @@ func formatActivity(activity []ContactActivity) string {
 	var values string
 	for _, ins := range activity {
 		for i := 0; i < len(ins.Activitytype); i++ {
-			values += fmt.Sprintf("('%s',%d,%d,'%s'),", ins.Contactid, ins.Campaignid, ins.Activitytype[i], ins.Activitydate[i])
+			values += fmt.Sprintf("('%s',%d,%d,'%s'),",
+				ins.Contactid, ins.Campaignid, ins.Activitytype[i], ins.Activitydate[i])
 		}
 	}
 	activityString := strings.TrimRight(values, ",")

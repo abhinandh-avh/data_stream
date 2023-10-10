@@ -15,7 +15,7 @@ func main() {
 	router.AddRoute("GET", "/", api.HomeHandler)
 	router.AddRoute("GET", "/result", api.AboutHandler)
 	router.AddRoute("POST", "/upload", api.InsertIntoKafkaHandler)
-	// router.AddRoute("POST", "/result", api.GetFromClickHouseHandler)
+	router.AddRoute("POST", "/result", api.GetFromClickHouseHandler)
 
 	// Serve static files
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
