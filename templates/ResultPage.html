@@ -1,53 +1,52 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 
 <head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Table Example</title>
+	<title>Query Results</title>
 </head>
 
 <body>
-	<h1>Data Table</h1>
-	<button id="populate-button">Populate Table</button>
-	<table border="1">
-		<thead>
-			<tr>
-				<th>ID</th>
-				<th>Name</th>
-				<th>Age</th>
-			</tr>
-		</thead>
-		<tbody id="table-body">
-			<!-- Table rows will be inserted here -->
-		</tbody>
-	</table>
+	<h1>ClickHouse Query Results</h1>
+	<button id="queryButton">Run Query</button>
+	<div id="resultTable">
+	</div>
 
 	<script>
-		// Sample data (you would replace this with your query results)
-		var data = [
-			{ id: 1, name: "John", age: 30 },
-			{ id: 2, name: "Jane", age: 25 },
-			{ id: 3, name: "Bob", age: 40 },
-			{ id: 4, name: "Alice", age: 28 },
-			{ id: 5, name: "Eve", age: 35 }
-		];
+		document.getElementById("queryButton").addEventListener("click", function () {
+			// Send an AJAX request to your Go server to fetch ClickHouse data
+			var xhr = new XMLHttpRequest();
+			xhr.open("POST", "/getresult", true);
+			xhr.onreadystatechange = function () {
+				if (xhr.readyState === 4 && xhr.status === 200) {
+					var result = JSON.parse(xhr.responseText);
+					displayResults(result);
+				}
+			};
+			xhr.send();
+		});
 
-		// Function to populate the table with data
-		function populateTable() {
-			var tableBody = document.getElementById("table-body");
-			tableBody.innerHTML = "";
+		function displayResults(data) {
+			var resultTable = document.getElementById("resultTable");
+			var tableHtml = "<table border='1'><tr>";
 
-			data.forEach(function (item) {
-				var row = document.createElement("tr");
-				row.innerHTML = `<td>${item.id}</td><td>${item.name}</td><td>${item.age}</td>`;
-				tableBody.appendChild(row);
-			});
+			// Assuming the first row contains column names
+			for (var key in data[0]) {
+				tableHtml += "<th>" + key + "</th>";
+			}
+			tableHtml += "</tr>";
+
+			// Loop through the data and populate the table
+			for (var i = 0; i < data.length; i++) {
+				tableHtml += "<tr>";
+				for (var key in data[i]) {
+					tableHtml += "<td>" + data[i][key] + "</td>";
+				}
+				tableHtml += "</tr>";
+			}
+			tableHtml += "</table>";
+
+			resultTable.innerHTML = tableHtml;
 		}
-
-		// Event listener for the button click
-		var populateButton = document.getElementById("populate-button");
-		populateButton.addEventListener("click", populateTable);
 	</script>
 </body>
 

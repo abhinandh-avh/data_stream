@@ -34,7 +34,6 @@ func InsertCSVIntoKafka(fileName string, topic string) {
 
 		// Convert the CSV line to a string (you can customize this as needed)
 		lineStr := strings.Join(line, ",")
-		go removeFile(fileName)
 		// Send the line to Kafka
 		kafkaInstance.(*datastore.KafkaConnection).SendMessage([]byte(lineStr))
 	}
@@ -75,11 +74,4 @@ func basicKafkaConnection(topic string) datastore.DatabaseConnection {
 	kafka.Connect()
 	kafka.(*datastore.KafkaConnection).SetTopic(topic)
 	return kafka
-}
-func removeFile(filename string) {
-	err := os.Remove(filename)
-	if err != nil {
-		logs.FileLog.Error("Error deleting file: %v", err)
-		return
-	}
 }

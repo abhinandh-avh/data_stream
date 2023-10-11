@@ -3,6 +3,7 @@ package api
 import (
 	"datastream/dataprocess"
 	"datastream/logs"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -25,7 +26,18 @@ func AboutHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetFromClickHouseHandler(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "templates/ResultPage.html")
+	queryResult := dataprocess.QueryFromClickhouse()
+
+	// Convert the result to JSON and send it to the client
+	jsonData, err := json.Marshal(queryResult)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(jsonData)
+	return
 }
 
 func InsertIntoKafkaHandler(w http.ResponseWriter, r *http.Request) {
@@ -52,6 +64,5 @@ func InsertIntoKafkaHandler(w http.ResponseWriter, r *http.Request) {
 	go dataprocess.InsertCSVIntoKafka(fileName, topic)
 	logs.FileLog.Info("CSV data inserted into Kafka successfully!  FILENAME :: %s", fileName)
 	http.ServeFile(w, r, "templates/HomePage.html")
-
 	return
 }
